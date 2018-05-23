@@ -1,3 +1,12 @@
+$color-white: #fff;
+$color-grey: #999999;
+$color-grey-2: #e3e3e3;
+$color-grey-3: #636363;
+$color-black: #000;
+$color-red: #FE8A71;
+$color-yellow: #FFF700;
+$color-blue:  #5D8AA8;
+
 #chessboard {
   font: normal normal 16px Arial, Tahoma, Verdana, sans-serif;
   display: flex;
@@ -5,15 +14,27 @@
 
   .chessboard-header,
   .chessboard-footer,
+  .chessboard-storage,
+  .chessboard-promote,
   .chessboard-container {
     display: flex;
     flex-direction: row;
-    color: #636363;
+    color: $color-black;
   }
 
+  .chessboard-storage,
+  .chessboard-promote,
   .chessboard-container {
-    display: flex;
-    flex-direction: row;
+    .chessboard-fields {
+      font-size: 24px;
+    }
+  }
+
+  .chessboard-promote,
+  .chessboard-container {
+    .chessboard-fields {
+      cursor: pointer;
+    }
   }
 
   .chessboard-aside {
@@ -39,13 +60,48 @@
     border: 1px solid transparent;
   }
 
-  .chessboard-fields div.color-black {
-    background: #e0e0e0;
-    border: 1px solid #e0e0e0;
+  .chessboard-fields {
+    div {
+      &.color-black {
+        background: $color-grey;
+        border: 1px solid $color-grey;
+
+        &.state-selected,
+        &.state-possible-move {
+          // box-shadow: 0 0 15px 3px inset $color-grey-3;
+          background: $color-grey-3;
+          border: 1px solid $color-grey-3;
+        }
+      }
+
+      &.color-white {
+        background: $color-white;
+        border: 1px solid $color-white;
+
+        &.state-selected,
+        &.state-possible-move {
+          // box-shadow: 0 0 10px 2px inset $color-grey-2;
+          background: $color-grey-2;
+          border: 1px solid $color-grey-2;
+        }
+      }
+    }
   }
 
-  .chessboard-fields div.color-white {
-    background: #999999;
-    border: 1px solid #999999;
+  .chessboard-promote {
+    min-height: 36px;
+
+    .chessboard-fields {
+      &.visible {
+        div {
+          display: flex;
+        }
+      }
+
+      div {
+        display: none;
+      }
+    }
   }
+
 }

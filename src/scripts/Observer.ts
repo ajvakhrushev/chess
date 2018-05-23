@@ -28,13 +28,11 @@ export class Observer {
 
   }
 
-  trigger(eventName: string) {
+  trigger(eventName: string, ...args: any[]) {
 
     if (!this._eventHandlers || !this._eventHandlers[eventName]) {
       return;
     }
-
-    const args = Array.prototype.slice.call(arguments, 1);
 
     this._eventHandlers[eventName].forEach((handler: Handler) => {
       handler.fn.apply(handler.ctx || this, args);

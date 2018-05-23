@@ -1,14 +1,14 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const path = require('path');
 
 module.exports = {
   entry: [
-    `${__dirname}/src/scripts/index.ts`,
-    `${__dirname}/src/styles/index.scss`
+    path.resolve(__dirname, 'src', 'scripts', 'index.ts'),
+    path.resolve(__dirname, 'src', 'styles', 'index.scss')
   ],
   output: {
     filename: 'index.js',
-    path: `${__dirname}/dist`
+    path: path.resolve(__dirname, 'src')
   },
   devtool: 'inline-source-map',
   module: {
@@ -42,7 +42,7 @@ module.exports = {
             loader: 'sass-loader',
             options: {
               sourceMap: true,
-              includePaths: [`${__dirname}/src/styles`]
+              includePaths: [path.resolve(__dirname, 'src', 'styles')]
             }
           }
         ]
@@ -53,16 +53,13 @@ module.exports = {
     new HtmlWebpackPlugin({
       inject: false,
       hash: true,
-      template: `${__dirname}/src/index.html`,
+      template: path.resolve(__dirname, 'src', 'index.html'),
       filename: 'index.html'
     })
   ],
   resolve: {
     extensions: [ '.tsx', '.ts', '.js' ],
-    modules: [`${__dirname}/node_modules`, `${__dirname}/src`],
-  },
-  resolveLoader: {
-    modules: [`${__dirname}/node_modules`]
+    modules: ['node_modules', path.resolve(__dirname, 'src')],
   },
   watch: true,
   watchOptions: {

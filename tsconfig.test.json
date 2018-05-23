@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "sourceMap": false,
+    "declaration": false,
+    "removeComments": false,
+    "noImplicitAny": false,
+    "outDir": "tmp",
+    "rootDir": "e2e",
+    "types": ["jasmine", "node"],
+    "lib": [ "dom", "ScriptHost", "es2018" ]
+  },
+  "exclude": [
+    "node_modules", "src"
+  ]
+}
+

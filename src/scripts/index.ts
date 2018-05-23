@@ -1,12 +1,32 @@
-import { Model } from './Model';
-import { View } from './View';
+import { Model } from 'scripts/Model';
+import { View } from 'scripts/View';
+import { snapshots } from 'scripts/History';
 
 const model = new Model();
 const view = new View('#chessboard');
 
-model.on('chessboard:didCreate', view.render);
-model.on('chessboard:didUpdate', view.render);
-model.on('piece:didMove', view.render);
+model.on('chessboard:didCreate', view.render, view);
+model.on('model:didArrange', view.didArrange, view);
 
-view.on('piece:didChoose', model.pieceCalculateMoves);
-view.on('piece:didMove', model.pieceMove);
+view.on('view:willSelect', model.willSelect, model);
+model.on('model:willSelect', view.select, view);
+view.on('view:didSelect', model.didSelect, model);
+model.on('model:didSelect', view.didSelect, view);
+
+view.on('view:willMove', model.willMove, model);
+model.on('model:willMove', view.move, view);
+view.on('view:didMove', model.didMove, model);
+model.on('model:didMove', view.didMove, view);
+
+model.on('model:willPromote', view.willPromote, view);
+view.on('view:didPromote', model.didPromote, model);
+model.on('model:didPromote', view.didPromote, view);
+
+// model.arrangePieces(snapshots.default);
+// model.arrangePieces(snapshots.test);
+model.arrangePieces(snapshots.empty);
+
+// window.chess = {
+//   model: model,
+//   view: view
+// };
