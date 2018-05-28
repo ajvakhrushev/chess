@@ -12,6 +12,13 @@ $color-blue:  #5D8AA8;
   display: flex;
   flex-direction: column;
 
+  .chessboard-game-container,
+  .chessboard-history {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chessboard-game,
   .chessboard-header,
   .chessboard-footer,
   .chessboard-storage,
@@ -26,7 +33,7 @@ $color-blue:  #5D8AA8;
   .chessboard-promote,
   .chessboard-container {
     .chessboard-fields {
-      font-size: 24px;
+      font-size: 32px;
     }
   }
 
@@ -102,6 +109,64 @@ $color-blue:  #5D8AA8;
         display: none;
       }
     }
+  }
+
+  .chessboard-history {
+      display: flex;
+      flex-direction: column;
+
+    .chessboard-history-lines {
+      display: flex;
+      flex-direction: column;
+      max-height: 360px;
+      overflow-y: auto;
+
+      div {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        min-height: 36px;
+        height: 36px;
+        max-height: 36px;
+      }
+
+      span {
+        position: relative;
+        display: flex;
+        min-height: 36px;
+        height: 36px;
+        max-height: 36px;
+        font-size: 32px;
+        line-height: 36px;
+
+        &.has-been-eaten {
+
+          &:before,
+          &:after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin: -16px 0 0 -1px;
+            width: 2px;
+            height: 32px;
+            background: $color-grey-3;
+          }
+
+          &:before {
+            transform: rotate(-45deg);
+          }
+
+          &:after {
+            transform: rotate(45deg);
+          }
+
+        }
+
+      }
+
+    }
+
   }
 
 }

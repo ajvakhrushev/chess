@@ -1,5 +1,5 @@
 import { Observer } from 'scripts/Observer';
-import { Field } from 'scripts/Field';
+import { Field, fieldViewMap } from 'scripts/Field';
 import { Team, WHITE, BLACK } from 'scripts/Team';
 import { pieceViewMap, QUEEN, KNIGHT, ROOK, BISHOP } from 'scripts/Piece';
 import { HistoryAction, HistoryStorage } from 'scripts/History';
@@ -20,6 +20,8 @@ export class View extends Observer {
 
   chessboard: HTMLElement | null;
   fieldsContainer: HTMLElement | null;
+  historyLinesContainer: HTMLElement | null;
+  messageContainer: HTMLElement | null;
   storage: Storage[];
   promoteContainer: Storage[] = [];
   fields: HTMLElement[] = [];
@@ -39,6 +41,8 @@ export class View extends Observer {
     }
 
     this.fieldsContainer = this.chessboard.querySelector('.chessboard-container .chessboard-fields');
+    this.messageContainer = this.chessboard.querySelector('.chessboard-history .chessboard-message');
+    this.historyLinesContainer = this.chessboard.querySelector('.chessboard-history .chessboard-history-lines');
 
     this.storageFields.push({key: WHITE, value: this.chessboard.querySelector('.chessboard-storage.team-white .chessboard-fields')});
     this.storageFields.push({key: BLACK, value: this.chessboard.querySelector('.chessboard-storage.team-black .chessboard-fields')});
@@ -130,18 +134,19 @@ export class View extends Observer {
     this.selected = selected || null;
 
     this.render(fields);
+    this.renderHistory(history);
 
     storage.forEach((next: HistoryStorage) => this.renderStorage(next));
 
     this.isActionAllowed = !isCheckMate;
 
     if (isCheckMate) {
-      this.end(history[history.length - 1].team);
+      this.end(history[history.length - 1].next.team);
     }
   }
 
   end(team: Team) {
-    // "team won" code
+    this.messageContainer.innerHTML = `Checkmate! ${team} won!`;
   }
 
   willPromote(team: Team) {
@@ -185,7 +190,6 @@ export class View extends Observer {
         html.push(`
           <div class="${classList.join(' ')}" data-index="${index}">
             ${field && field.piece ? pieceViewMap[field.team][field.piece] : ''}
-            ${index}
           </div>
         `);
       }
@@ -234,6 +238,28 @@ export class View extends Observer {
     }, <string[]>[]);
 
     storage.value.innerHTML = html.join('');
+  }
+
+  renderHistory(data: HistoryAction[]) {
+    const html: string[] = data.slice().reverse().map((item: HistoryAction) => {
+      const from = item.move[0].toString().split('');
+      const to = item.move[1].toString().split('');
+      const str: string[] = [];
+
+      if (item.next && item.next.piece) {
+        str.push(`<span>${pieceViewMap[item.next.team][item.next.piece]}</span>`);
+      }
+
+      str.push(`${fieldViewMap[from[1]]}${from[0]} &rarr; ${fieldViewMap[to[1]]}${to[0]}`);
+
+      if (item.prev && item.prev.piece) {
+        str.push(`<span class="has-been-eaten">${pieceViewMap[item.prev.team][item.prev.piece]}</span>`);        
+      }
+
+      return `<div>${str.join('')}</div>`;
+    });
+
+    this.historyLinesContainer.innerHTML = html.join('');
   }
 
   onFieldsReduce(prev: HTMLElement[], next: HTMLElement, index: number): HTMLElement[] {

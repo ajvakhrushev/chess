@@ -12,8 +12,6 @@
     "types": ["jasmine", "node"],
     "lib": [ "dom", "ScriptHost", "es2018" ]
   },
-  "exclude": [
-    "node_modules", "src"
-  ]
+  "exclude": ["node_modules", "src"]
 }
 

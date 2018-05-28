@@ -11,7 +11,7 @@ import {
   PieceHasMultiplyStrategies,
   PAWN
 } from 'scripts/Piece';
-import { WHITE, BLACK } from 'scripts/Team';
+import { WHITE, BLACK, Team } from 'scripts/Team';
 import { Field } from 'scripts/Field';
 import { HistoryAction } from 'scripts/History';
 
@@ -19,10 +19,16 @@ export interface PieceStrategy {
   (value: number): number;
 };
 
-export interface RooksMove {
+export interface CastlingPossibleMoves {
+  key: Team,
+  values: KingRookMoves[]
+};
+
+export interface KingRookMoves {
   indexFrom: number,
   indexTo: number,
-  kingStrategy: PieceStrategy
+  kingStrategy: PieceStrategy,
+  rookStrategy: PieceStrategy
 };
 
 export const left: PieceStrategy = (value: number): number => value + 1;
@@ -63,6 +69,11 @@ export const strategies = {
         isMultiply: false
       },
       {
+        keys: [KNIGHT],
+        values: [knightLeftUp, knightUpLeft, knightUpRight, knightRightUp, knightRightDown, knightDownRight, knightDownLeft, knightLeftDown],
+        isMultiply: false
+      },
+      {
         keys: [PAWN_UP],
         values: [downLeft, downRight],
         isMultiply: false
@@ -90,6 +101,23 @@ export const strategies = {
   }
 };
 
+const castlingKingRookMoves: CastlingPossibleMoves[] = [
+  {
+    key: <Team>WHITE,
+    values: [
+      {indexFrom: 11, indexTo: 13, kingStrategy: right, rookStrategy: left},
+      {indexFrom: 18, indexTo: 15, kingStrategy: left, rookStrategy: right}
+    ]
+  },
+  {
+    key: <Team>BLACK,
+    values: [
+      {indexFrom: 81, indexTo: 83, kingStrategy: right, rookStrategy: left},
+      {indexFrom: 88, indexTo: 85, kingStrategy: left, rookStrategy: right}
+    ]
+  }
+];
+
 export const isMovePossibleInCommon = (current: Field, next: Field) => !!next && (!next.piece || (current.team !== next.team && next.piece !== KING));
 export const isCheckPossibleInCommon = (current: Field, next: Field) => !!next && (!next.piece || (current.team !== next.team));
 export const isBeatMovePossible = (current: Field, next: Field) => !!next && !!next.piece && current.team !== next.team && next.piece !== KING;
@@ -100,8 +128,8 @@ export const isEnPassantMovePossible = (current: Field, next: Field, indexFrom: 
       !lastMove
       || !next
       || !!next.piece
-      || (lastMove.team === current.team)
-      || (lastMove.piece !== PAWN_UP && lastMove.piece !== PAWN_DOWN)
+      || (lastMove.next.team === current.team)
+      || (lastMove.next.piece !== PAWN_UP && lastMove.next.piece !== PAWN_DOWN)
       || (Math.abs(lastMove.move[1] - lastMove.move[0]) !== 20)
      ) {
     return false;
@@ -163,6 +191,46 @@ const pawnStrategy = (index: number, current: Field, fields: Field[], history?: 
   return moves.concat(strategies[<PAWN>current.piece].beat.reduce(onPawnBeatMove(index, current, fields, history), <number[]>[]));
 };
 
+const kingCastlingStrategy = (index: number, current: Field, fields: Field[], history?: HistoryAction[]): number[] => {
+  const kingRookMoves: CastlingPossibleMoves = castlingKingRookMoves.find((next) => next.key === current.team);
+console.log(kingRookMoves);
+  const rooksMoves: KingRookMoves[] = kingRookMoves.values.filter((next: KingRookMoves) => {
+    const field = fields[next.indexFrom];
+
+    if (!field || field.didUpdate || field.piece !== ROOK || field.team !== current.team) {
+      return false;
+    }
+
+    const moves = calculatePossibleMoves[ROOK](next.indexFrom, field, fields);
+
+    return !!moves.includes(next.indexTo);
+  });
+
+  return rooksMoves.reduce((prev: number[], next: KingRookMoves) => {
+    let last = index;
+    let nextFields = fields;
+
+    for (let i = 0, length = 2; i < length; i+=1) {
+      const nextIndex = next.kingStrategy(last);
+
+      nextFields = preMove(last, nextIndex, nextFields);
+
+      if (isCheck(nextIndex, nextFields[nextIndex], nextFields)) {
+        last = null;
+        break;
+      }
+
+      last = nextIndex;
+    }
+
+    if (last) {
+      prev.push(last);
+    }
+
+    return prev;
+  }, <number[]>[]);
+};
+
 export const calculatePossibleMoves = {
   [KING]: (index: number, current: Field, fields: Field[], history?: HistoryAction[]): number[] => {
     const moves = strategies[KING].move.reduce(onSimpleMove(index, current, fields), <number[]>[]);
@@ -171,56 +239,7 @@ export const calculatePossibleMoves = {
       return moves;
     }
 
-    let rooksMoves: RooksMove[];
-
-    switch (current.team) {
-      case WHITE:
-        rooksMoves = [{indexFrom: 11, indexTo: 13, kingStrategy: right}, {indexFrom: 18, indexTo: 15, kingStrategy: left}];
-        break;
-      case BLACK:
-        rooksMoves = [{indexFrom: 81, indexTo: 83, kingStrategy: right}, {indexFrom: 88, indexTo: 85, kingStrategy: left}];
-        break;
-      default:
-        return moves;
-    }
-
-    rooksMoves = rooksMoves.filter((next: RooksMove) => {
-      const field = fields[next.indexFrom];
-
-      if (field.didUpdate || field.piece !== ROOK) {
-        return false;
-      }
-
-      const moves = calculatePossibleMoves[ROOK](next.indexFrom, field, fields);
-
-      return !!moves.includes(next.indexTo);
-    });
-
-    const castlingMoves = rooksMoves.reduce((prev: number[], next: RooksMove) => {
-      let last = index;
-      let nextFields = fields;
-
-      for (let i = 0, length = 2; i < length; i+=1) {
-        const nextIndex = next.kingStrategy(last);
-
-        nextFields = preMove(last, nextIndex, nextFields);
-
-        if (isCheck(nextIndex, nextFields[nextIndex], nextFields)) {
-          last = null;
-          break;
-        }
-
-        last = nextIndex;
-      }
-
-      if (last) {
-        prev.push(last);
-      }
-
-      return prev;
-    }, <number[]>[]);
-
-    return moves.concat(castlingMoves);
+    return moves.concat(kingCastlingStrategy(index, current, fields, history));
   },
   [KNIGHT]: (index: number, current: Field, fields: Field[], history?: HistoryAction[]): number[] => {
     return strategies[KNIGHT].reduce(onSimpleMove(index, current, fields), <number[]>[]);
@@ -271,7 +290,7 @@ export const isCheck = (index: number, current: Field, fields: Field[]): boolean
 
 };
 
-export const isCheckMate = (index: number, current: Field, fields: Field[]): boolean => {
+export const isCheckMate = (index: number, current: Field, fields: Field[], history?: HistoryAction[]): boolean => {
   const moves = calculatePossibleMoves[KING](index, current, fields);
 
   const cannotMoveOut = moves.every((indexTo: number) => {
@@ -295,6 +314,10 @@ export const isCheckMate = (index: number, current: Field, fields: Field[]): boo
         indexes.push(nextIndex);
 
         last = next;
+
+        if (!!next.piece && next.team !== current.team) {
+          break;
+        }
       }
 
       return !!last && last.piece && keys.includes(last.piece) ? prev.concat(indexes) : prev;
@@ -313,7 +336,7 @@ export const isCheckMate = (index: number, current: Field, fields: Field[]): boo
 
   return teamIndexes.every((indexFrom: number): boolean => {
     const current: Field = fields[indexFrom];
-    const moves: number[] = calculatePossibleMoves[current.piece](indexFrom, current, fields);
+    const moves: number[] = calculatePossibleMoves[current.piece](indexFrom, current, fields, history);
 
     return dangerDirections.every((indexTo: number): boolean => {
       if (!moves.includes(indexTo)) {
@@ -342,8 +365,4 @@ export const canPawnPromote = (index: number, field: Field, fields: Field[], his
   }
 
   return index > lastLine[0] && index < lastLine[1];
-}
-
-export const promotePawn = (index: number, field: Field, fields: Field, history?: HistoryAction[]) => {
-
 }

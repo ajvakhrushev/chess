@@ -6,3 +6,15 @@ export interface Field {
   team: Team;
   didUpdate: boolean
 }
+
+export const fieldViewMap: string[] = [
+  null,
+  'H',
+  'G',
+  'F',
+  'E',
+  'D',
+  'C',
+  'B',
+  'A'
+];

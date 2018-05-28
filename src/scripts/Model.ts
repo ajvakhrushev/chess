@@ -1,7 +1,8 @@
 import { Observer } from 'scripts/Observer';
+import { clone } from 'scripts/Utilities';
 import { Field } from 'scripts/Field';
 import { Team, WHITE, BLACK } from 'scripts/Team';
-import { HistoryAction, HistoryStorage, HistorySnapshot, snapshotMapToField, snapshots } from 'scripts/History';
+import { HistoryAction, HistoryStorage, HistorySnapshot, snapshotMapToField } from 'scripts/History';
 import { Piece, QUEEN, KNIGHT, ROOK, BISHOP, PAWN, KING, PAWN_UP, PAWN_DOWN } from 'scripts/Piece';
 import {
   PieceStrategy,
@@ -25,7 +26,6 @@ export class Model extends Observer {
   fields: Field[] = [];
   history: HistoryAction[] = [];
   selected: Selected;
-  activeTeam: Team;
   promotePieces: Piece[] = [QUEEN, KNIGHT, ROOK, BISHOP];
   storage: HistoryStorage[];
 
@@ -42,9 +42,11 @@ export class Model extends Observer {
   }
 
   willSelect(index: number) {
-    // const canBeSelected = index && !!this.fields[index] && !!this.fields[index].piece && this.fields[index].team === this.activeTeam;
-    const canBeSelected = index && !!this.fields[index] && !!this.fields[index].piece;
+    const current = this.fields[index];
     const nextIndex = !this.selected || this.selected.index !== index ? index : null;
+    const lastMove = this.history[this.history.length - 1];
+    let canBeSelected = index && !!current && !!current.piece &&
+                        ((!!lastMove && lastMove.next.team !== current.team) || (!lastMove && current.team === WHITE));
 
     this.trigger('model:willSelect', nextIndex, canBeSelected);
   }
@@ -106,12 +108,10 @@ export class Model extends Observer {
         break;
     }
 
+    const beatenField = clone(fieldTo);
+
     if (fieldTo.piece) {
-      this.storage.find((next: HistoryStorage) => next.key === fieldTo.team).values.push({
-        piece: fieldTo.piece,
-        team: fieldTo.team,
-        didUpdate: false
-      });
+      this.storage.find((next: HistoryStorage) => next.key === fieldTo.team).values.push(beatenField);
     }
 
     this.fields = nextFields;
@@ -119,11 +119,11 @@ export class Model extends Observer {
     const enemyKingIndex: number = this.fields.findIndex((next: Field) => next && next.team !== field.team && next.piece === KING);
     const enemyKingField: Field = this.fields[enemyKingIndex];
     const isCheckMateState: boolean = isCheck(enemyKingIndex, enemyKingField, this.fields) &&
-                                      isCheckMate(enemyKingIndex, enemyKingField, this.fields);
+                                      isCheckMate(enemyKingIndex, enemyKingField, this.fields, this.history);
 
     this.history.push({
-      piece: field.piece,
-      team: field.team,
+      prev: beatenField,
+      next: clone(field),
       move: [indexFrom, indexTo]
     });
 
@@ -154,23 +154,20 @@ export class Model extends Observer {
     }
 
     const field = this.fields[lastMove.move[1]];
+    const beatenField: Field = clone(field);
 
-    this.storage.find((next: HistoryStorage) => next.key === field.team).values.push({
-      piece: field.piece,
-      team: field.team,
-      didUpdate: false
-    });
+    this.storage.find((next: HistoryStorage) => next.key === field.team).values.push(beatenField);
 
     field.piece = piece;
 
     const enemyKingIndex: number = this.fields.findIndex((next: Field) => next && next.team !== field.team && next.piece === KING);
     const enemyKingField: Field = this.fields[enemyKingIndex];
     const isCheckMateState: boolean = isCheck(enemyKingIndex, enemyKingField, this.fields) &&
-                                      isCheckMate(enemyKingIndex, enemyKingField, this.fields);
+                                      isCheckMate(enemyKingIndex, enemyKingField, this.fields, this.history);
 
     this.history.push({
-      piece: field.piece,
-      team: field.team,
+      prev: beatenField,
+      next: clone(field),
       move: [indexTo, indexTo]
     });
 
@@ -205,6 +202,22 @@ export class Model extends Observer {
       return prev;
     }, <HistoryStorage[]>[]);
 
+    const teams: Team[] = this.fields.reduce((prev: Team[], next: Field) => {
+      if (!!next && next.team && !prev.includes(next.team)) {
+        prev.push(next.team);
+      }
+
+      return prev;
+    }, <Team[]>[]);
+
+    teams.forEach((next: Team) => {
+      if (!!this.storage.some((item: HistoryStorage) => item.key === next)) {
+        return;
+      }
+
+      this.storage.push({key: next, values: []});
+    });
+
     this.trigger('model:didArrange', this.fields, this.storage);
   }
 
@@ -214,7 +227,7 @@ export class Model extends Observer {
         nextFields = preMove(indexFrom + 4, indexFrom + 1, nextFields);
         break;
       case -2:
-        nextFields = preMove(indexFrom -3, indexFrom -1, nextFields);
+        nextFields = preMove(indexFrom - 3, indexFrom - 1, nextFields);
         break;
     }
 

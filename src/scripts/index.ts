@@ -1,6 +1,8 @@
+import { getQueryParams } from 'scripts/Utilities';
 import { Model } from 'scripts/Model';
 import { View } from 'scripts/View';
-import { snapshots } from 'scripts/History';
+import { HistorySnapshot } from 'scripts/History';
+import * as snapshots from 'scripts/arrangement';
 
 const model = new Model();
 const view = new View('#chessboard');
@@ -22,11 +24,7 @@ model.on('model:willPromote', view.willPromote, view);
 view.on('view:didPromote', model.didPromote, model);
 model.on('model:didPromote', view.didPromote, view);
 
-// model.arrangePieces(snapshots.default);
-// model.arrangePieces(snapshots.test);
-model.arrangePieces(snapshots.empty);
+const arrangementQueryParam = getQueryParams().find(((next) => next.key === 'arrangement'));
+const arrangement = arrangementQueryParam && arrangementQueryParam.value ? arrangementQueryParam.value : '_default';
 
-// window.chess = {
-//   model: model,
-//   view: view
-// };
+model.arrangePieces(snapshots[arrangement]);
