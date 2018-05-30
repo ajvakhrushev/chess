@@ -1,7 +1,5 @@
-# chess
+# Chess
 
-build and launch application
+do ```npm install && npm start```
 
-npm install && npm start
-
-check http://localhost:8080/ in your browser
+check http://localhost:8080/
